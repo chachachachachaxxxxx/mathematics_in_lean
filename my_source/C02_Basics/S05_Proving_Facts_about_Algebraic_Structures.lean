@@ -36,9 +36,19 @@ variable (x y z : α)
 #check (sup_le : x ≤ z → y ≤ z → x ⊔ y ≤ z)
 
 example : x ⊓ y = y ⊓ x := by
-  sorry
+  apply le_antisymm
+  repeat
+    apply le_inf
+    apply inf_le_right
+    apply inf_le_left
 
 example : x ⊓ y ⊓ z = x ⊓ (y ⊓ z) := by
+  apply le_antisymm
+  · apply le_inf
+    · trans x ⊓ y
+      apply inf_le_left
+      apply inf_le_left
+    sorry
   sorry
 
 example : x ⊔ y = y ⊔ x := by
@@ -48,10 +58,18 @@ example : x ⊔ y ⊔ z = x ⊔ (y ⊔ z) := by
   sorry
 
 theorem absorb1 : x ⊓ (x ⊔ y) = x := by
-  sorry
+  apply le_antisymm
+  · apply inf_le_left
+  · apply le_inf
+    apply le_refl
+    apply le_sup_left
 
 theorem absorb2 : x ⊔ x ⊓ y = x := by
-  sorry
+  apply le_antisymm
+  · apply sup_le
+    apply le_refl
+    apply inf_le_left
+  · apply le_sup_left
 
 end
 
@@ -68,7 +86,7 @@ end
 section
 variable {α : Type*} [Lattice α]
 variable (a b c : α)
-
+-- 审题不仔细啊
 example (h : ∀ x y z : α, x ⊓ (y ⊔ z) = x ⊓ y ⊔ x ⊓ z) : a ⊔ b ⊓ c = (a ⊔ b) ⊓ (a ⊔ c) := by
   sorry
 
@@ -87,13 +105,23 @@ variable (a b c : R)
 #check (mul_nonneg : 0 ≤ a → 0 ≤ b → 0 ≤ a * b)
 
 example (h : a ≤ b) : 0 ≤ b - a := by
-  sorry
+  rw [← sub_self a, sub_eq_add_neg, sub_eq_add_neg, add_comm, add_comm b]
+  apply add_le_add_left h
+  -- exact sub_nonneg_of_le h
 
 example (h: 0 ≤ b - a) : a ≤ b := by
-  sorry
-
+  rw [← add_zero b, ← sub_self a, sub_eq_add_neg, ← add_assoc, add_comm b, add_assoc, ← sub_eq_add_neg]
+  nth_rw 1 [← add_zero a]
+  apply add_le_add_left h
+  -- add_sub_cancel
 example (h : a ≤ b) (h' : 0 ≤ c) : a * c ≤ b * c := by
-  sorry
+  have h₀: 0 ≤ b * c - a * c := by
+    rw [← sub_mul]
+    apply mul_nonneg
+    · rw [← sub_self a, sub_eq_add_neg, sub_eq_add_neg, add_comm, add_comm b]
+      apply add_le_add_left h
+    exact h'
+  sorry -- using example two
 
 end
 
@@ -106,7 +134,9 @@ variable (x y z : X)
 #check (dist_triangle x y z : dist x z ≤ dist x y + dist y z)
 
 example (x y : X) : 0 ≤ dist x y := by
-  sorry
+  have h: dist x x ≤ dist x y + dist y x := by
+    apply dist_triangle x y x
+  rw [dist_self, dist_comm y x] at h
+  linarith
 
 end
-
