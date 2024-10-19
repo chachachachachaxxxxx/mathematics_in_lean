@@ -171,7 +171,6 @@ theorem abs_mod'_le (a b : ℤ) (h : 0 < b) : |mod' a b| ≤ b / 2 := by
   have := Int.emod_lt_of_pos (a + b / 2) h
   have := Int.ediv_add_emod b 2
   have := Int.emod_lt_of_pos b zero_lt_two
-  revert this; intro this -- FIXME, this should not be needed
   linarith
 
 theorem mod'_eq (a b : ℤ) : mod' a b = a - b * div' a b := by linarith [div'_add_mod' a b]
@@ -180,7 +179,30 @@ end Int
 
 theorem sq_add_sq_eq_zero {α : Type*} [LinearOrderedRing α] (x y : α) :
     x ^ 2 + y ^ 2 = 0 ↔ x = 0 ∧ y = 0 := by
-  sorry
+  constructor
+  · intro xyeqz
+    sorry
+  · intro ⟨xeqz, yeqz⟩
+    simp [xeqz, yeqz]
+
+private theorem aux {α : Type*} [LinearOrderedRing α] {x y : α} (h : x ^ 2 + y ^ 2 = 0) : x = 0 :=
+  haveI h' : x ^ 2 = 0 := by
+    apply le_antisymm _ (sq_nonneg x)
+    rw [← h]
+    apply le_add_of_nonneg_right (sq_nonneg y)
+  pow_eq_zero h'
+
+theorem sq_add_sq_eq_zero_ans {α : Type*} [LinearOrderedRing α] (x y : α) :
+    x ^ 2 + y ^ 2 = 0 ↔ x = 0 ∧ y = 0 := by
+  constructor
+  · intro h
+    constructor
+    · exact aux h
+    rw [add_comm] at h
+    exact aux h
+  rintro ⟨rfl, rfl⟩
+  norm_num
+
 namespace GaussInt
 
 def norm (x : GaussInt) :=
@@ -188,13 +210,43 @@ def norm (x : GaussInt) :=
 
 @[simp]
 theorem norm_nonneg (x : GaussInt) : 0 ≤ norm x := by
-  sorry
+  simp [norm]
+  apply add_nonneg <;>
+  apply sq_nonneg
+
 theorem norm_eq_zero (x : GaussInt) : norm x = 0 ↔ x = 0 := by
-  sorry
+  simp [norm, zero_def]
+  constructor
+  -- · apply (sq_add_sq_eq_zero_ans x.re x.im).mp
+  · sorry
+  · rintro rfl
+    norm_num
+
+theorem norm_eq_zero_ans (x : GaussInt) : norm x = 0 ↔ x = 0 := by
+  rw [norm, sq_add_sq_eq_zero, GaussInt.ext_iff]
+  rfl
+
 theorem norm_pos (x : GaussInt) : 0 < norm x ↔ x ≠ 0 := by
-  sorry
+  constructor
+  · contrapose!
+    intro xeqz
+    have : norm x = 0 := (norm_eq_zero x).mpr xeqz
+    linarith
+  · contrapose!
+    intro xnorm
+    apply (norm_eq_zero x).mp
+    apply le_antisymm
+    · apply xnorm
+    · apply norm_nonneg
+
+theorem norm_pos_ans (x : GaussInt) : 0 < norm x ↔ x ≠ 0 := by
+  rw [lt_iff_le_and_ne, ne_comm, Ne, norm_eq_zero]
+  simp [norm_nonneg]
+
 theorem norm_mul (x y : GaussInt) : norm (x * y) = norm x * norm y := by
-  sorry
+  simp [norm]
+  ring
+
 def conj (x : GaussInt) : GaussInt :=
   ⟨x.re, -x.im⟩
 
@@ -246,7 +298,7 @@ theorem coe_natAbs_norm (x : GaussInt) : (x.norm.natAbs : ℤ) = x.norm :=
 theorem natAbs_norm_mod_lt (x y : GaussInt) (hy : y ≠ 0) :
     (x % y).norm.natAbs < y.norm.natAbs := by
   apply Int.ofNat_lt.1
-  simp only [Int.coe_natAbs, abs_of_nonneg, norm_nonneg]
+  simp only [Int.natCast_natAbs, abs_of_nonneg, norm_nonneg]
   apply norm_mod_lt x hy
 
 theorem not_norm_mul_left_lt_norm (x : GaussInt) {y : GaussInt} (hy : y ≠ 0) :
@@ -273,6 +325,6 @@ instance : EuclideanDomain GaussInt :=
     mul_left_not_lt := not_norm_mul_left_lt_norm }
 
 example (x : GaussInt) : Irreducible x ↔ Prime x :=
-  PrincipalIdealRing.irreducible_iff_prime
+  irreducible_iff_prime
 
 end GaussInt
