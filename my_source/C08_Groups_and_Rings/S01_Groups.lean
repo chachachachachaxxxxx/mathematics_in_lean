@@ -9,7 +9,7 @@ example {M : Type*} [Monoid M] (x : M) : x * 1 = x := mul_one x
 
 example {M : Type*} [AddCommMonoid M] (x y : M) : x + y = y + x := add_comm x y
 
-example {M N : Type*} [Monoid M] [Monoid N] (x y : M) (f : M →* N) : f (x * y) = f x * f y :=
+example {M N : Type*} [Monoid M] [Monoid N] (x y : M) (f : MonoidHom M N) : f (x * y) = f x * f y :=
   f.map_mul x y
 
 example {M N : Type*} [AddMonoid M] [AddMonoid N] (f : M →+ N) : f 0 = 0 :=
@@ -86,13 +86,24 @@ def conjugate {G : Type*} [Group G] (x : G) (H : Subgroup G) : Subgroup G where
   carrier := {a : G | ∃ h, h ∈ H ∧ a = x * h * x⁻¹}
   one_mem' := by
     dsimp
-    sorry
+    use 1
+    constructor
+    · exact H.one_mem
+    · group
   inv_mem' := by
     dsimp
-    sorry
+    rintro x1 ⟨h, ⟨hmem, ⟨heq, rfl⟩⟩⟩
+    use h⁻¹
+    constructor
+    · exact H.inv_mem hmem
+    · group
   mul_mem' := by
     dsimp
-    sorry
+    rintro a b ⟨h1, ⟨h1mem, ⟨h1eq, rfl⟩⟩⟩ ⟨h2, ⟨h2mem, ⟨h2eq, rfl⟩⟩⟩
+    use h1 * h2
+    constructor
+    · exact H.mul_mem h1mem h2mem
+    · group
 
 example {G H : Type*} [Group G] [Group H] (G' : Subgroup G) (f : G →* H) : Subgroup H :=
   Subgroup.map f G'

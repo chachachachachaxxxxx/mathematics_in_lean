@@ -16,6 +16,7 @@ structure MonoidHom₁ (G H : Type) [Monoid G] [Monoid H]  where
   map_one : toFun 1 = 1
   map_mul : ∀ g g', toFun (g * g') = toFun g * toFun g'
 
+--引入强制转换机制，避免每次都使用toFun
 instance [Monoid G] [Monoid H] : CoeFun (MonoidHom₁ G H) (fun _ ↦ G → H) where
   coe := MonoidHom₁.toFun
 
@@ -35,17 +36,19 @@ instance [AddMonoid G] [AddMonoid H] : CoeFun (AddMonoidHom₁ G H) (fun _ ↦ G
 
 attribute [coe] AddMonoidHom₁.toFun
 
+-- 不知道该如何添加强转函数， the relevant function is MonoidHom₁.toFun ∘ RingHom₁.toMonoidHom₁
 @[ext]
 structure RingHom₁ (R S : Type) [Ring R] [Ring S] extends MonoidHom₁ R S, AddMonoidHom₁ R S
 
 
-
+--添加了一个额外的F表示M->N，而后会被添加强转使得F被强制转换为M->N
+--The idea is to define a type class for objects that are at least monoid morphisms, instantiate that class with both monoid morphisms and ring morphisms and use it to state every lemma. In the definition below, F could be MonoidHom₁ M N, or RingHom₁ M N if M and N have a ring structure.
 class MonoidHomClass₁ (F : Type) (M N : Type) [Monoid M] [Monoid N] where
   toFun : F → M → N
   map_one : ∀ f : F, toFun f 1 = 1
   map_mul : ∀ f g g', toFun f (g * g') = toFun f g * toFun f g'
 
-
+set_option synthInstance.checkSynthOrder true in
 def badInst [Monoid M] [Monoid N] [MonoidHomClass₁ F M N] : CoeFun F (fun _ ↦ M → N) where
   coe := MonoidHomClass₁.toFun
 
@@ -105,13 +108,23 @@ structure OrderPresHom (α β : Type) [LE α] [LE β] where
 structure OrderPresMonoidHom (M N : Type) [Monoid M] [LE M] [Monoid N] [LE N] extends
 MonoidHom₁ M N, OrderPresHom M N
 
-class OrderPresHomClass (F : Type) (α β : outParam Type) [LE α] [LE β]
+class OrderPresHomClass (F : Type) (α β : outParam Type) [LE α] [LE β] extends DFunLike F α (fun _ ↦ β) where
+  le_of_le: ∀ (f : F) a a', a ≤ a' → f a ≤ f a'
 
 instance (α β : Type) [LE α] [LE β] : OrderPresHomClass (OrderPresHom α β) α β where
+  coe := OrderPresHom.toFun
+  coe_injective' := OrderPresHom.ext
+  le_of_le := OrderPresHom.le_of_le
 
 instance (α β : Type) [LE α] [Monoid α] [LE β] [Monoid β] :
     OrderPresHomClass (OrderPresMonoidHom α β) α β where
+  coe := fun f => f.toMonoidHom₁.toFun
+  coe_injective' := OrderPresMonoidHom.ext
+  le_of_le := fun f => f.toOrderPresHom.le_of_le
 
 instance (α β : Type) [LE α] [Monoid α] [LE β] [Monoid β] :
-    MonoidHomClass₃ (OrderPresMonoidHom α β) α β
-  := sorry
+    MonoidHomClass₃ (OrderPresMonoidHom α β) α β where
+  coe := fun f => f.toMonoidHom₁.toFun
+  coe_injective' := OrderPresMonoidHom.ext
+  map_one := fun f => f.toMonoidHom₁.map_one
+  map_mul := fun f => f.toMonoidHom₁.map_mul
